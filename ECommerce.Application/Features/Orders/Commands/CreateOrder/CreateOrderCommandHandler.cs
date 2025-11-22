@@ -1,0 +1,78 @@
+﻿using Application.Interfaces; // <--- Додано
+using ECommerce.Domain.Entities;
+using ECommerce.Domain.Repositories;
+using MediatR;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Application.Features.Orders.Commands.CreateOrder
+{
+    public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Guid>
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly ICurrentUserService _currentUserService; // <--- Додано поле
+
+        // Оновлений конструктор
+        public CreateOrderCommandHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
+        {
+            _unitOfWork = unitOfWork;
+            _currentUserService = currentUserService;
+        }
+
+        public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
+        {
+            // 1. Отримуємо ID користувача з токена через наш сервіс
+            var userId = _currentUserService.UserId;
+
+            if (userId == Guid.Empty)
+            {
+                throw new UnauthorizedAccessException("User ID not found in token.");
+            }
+
+            // Перевірка користувача в БД
+            var userRepo = _unitOfWork.Repository<User>();
+            var user = await userRepo.GetByIdAsync(userId);
+
+            if (user == null)
+            {
+                throw new KeyNotFoundException($"User with ID {userId} not found.");
+            }
+
+            // 2. Створення замовлення (використовуємо userId з токена)
+            var order = new Order(userId);
+            var productRepo = _unitOfWork.Repository<Product>();
+
+            // 3. Обробка товарів
+            foreach (var itemDto in request.Items)
+            {
+                var product = await productRepo.GetByIdAsync(itemDto.ProductId);
+
+                if (product == null)
+                {
+                    throw new KeyNotFoundException($"Product with ID {itemDto.ProductId} not found.");
+                }
+
+                try
+                {
+                    product.DecreaseStock(itemDto.Quantity);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    throw new InvalidOperationException($"Product '{product.Name}': {ex.Message}");
+                }
+
+                order.AddOrderItem(product.Id, itemDto.Quantity, product.Price);
+            }
+
+            // 4. Збереження
+            var orderRepo = _unitOfWork.Repository<Order>();
+            await orderRepo.AddAsync(order);
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return order.Id;
+        }
+    }
+}

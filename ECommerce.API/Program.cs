@@ -3,7 +3,12 @@ using ECommerce.Infrastructure.Persistence;
 using ECommerce.Domain.Repositories;
 using ECommerce.Infrastructure.Repositories;
 using ECommerce.Application;
-using ECommerce.API.Middleware; // <--- 1. ДОДАНО: Щоб бачити папку Middleware
+using ECommerce.API.Middleware;
+using Application.Interfaces;
+using ECommerce.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace ECommerce.API
 {
@@ -16,26 +21,75 @@ namespace ECommerce.API
             // Add services to the container.
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
 
-            // Реєстрація ApplicationDbContext
+            // Налаштування Swagger для роботи з JWT
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+                {
+                    {
+                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                        {
+                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                            {
+                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {}
+                    }
+                });
+            });
+
+            // Database
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            // Реєстрація Unit of Work
+            // UnitOfWork & Repositories
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-            // Реєстрація специфічних репозиторіїв
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
-            // Реєстрація Application Layer (MediatR, Validators, Behaviors)
+            // Services
+            builder.Services.AddScoped<ITokenService, TokenService>();
+
+            // ??? ДОДАНО: Сервіси для визначення поточного користувача ???
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+            // ============================================================
+
+            // Application Layer
             builder.Services.AddApplication();
+
+            // === НАЛАШТУВАННЯ JWT ===
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+                    };
+                });
+            // ========================
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -44,12 +98,10 @@ namespace ECommerce.API
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
-            // ====== 2. ДОДАНО: Підключення глобального обробника помилок ======
-            // Це перехоплює помилки валідації і перетворює 500 на 400
             app.UseMiddleware<CustomExceptionHandlerMiddleware>();
-            // ==================================================================
 
             app.MapControllers();
 

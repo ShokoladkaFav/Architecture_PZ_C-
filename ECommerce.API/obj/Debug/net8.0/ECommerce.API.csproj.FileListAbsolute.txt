@@ -141,3 +141,13 @@ C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECo
 C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\MediatR.dll
 C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\MediatR.Extensions.Microsoft.DependencyInjection.dll
 C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\obj\Debug\net8.0\ECommerce.API.sourcelink.json
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Abstractions.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.Extensions.Primitives.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\Admin\Desktop\Архітектура ПЗ\Папка проекту\ECommerce\ECommerce.API\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll

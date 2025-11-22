@@ -1,8 +1,9 @@
 ﻿using ECommerce.Domain.Repositories;
-using ECommerce.Domain.Common; // Тут лежить клас Entity
+using ECommerce.Domain.Common;
+using ECommerce.Domain.Entities; // <--- Додано для доступу до User та Order
 using ECommerce.Infrastructure.Persistence;
 using System;
-using System.Collections; // Потрібно для Hashtable
+using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +12,7 @@ namespace ECommerce.Infrastructure.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly ApplicationDbContext _dbContext;
-        private Hashtable _repositories; // Колекція для зберігання створених репозиторіїв
+        private Hashtable _repositories;
 
         public UnitOfWork(ApplicationDbContext dbContext)
         {
@@ -33,7 +34,6 @@ namespace ECommerce.Infrastructure.Repositories
             _dbContext.Dispose();
         }
 
-        // ↓↓↓ ОСЬ ЦЕЙ МЕТОД БУВ ВІДСУТНІЙ ↓↓↓
         public IRepository<T> Repository<T>() where T : Entity
         {
             if (_repositories == null)
@@ -41,16 +41,32 @@ namespace ECommerce.Infrastructure.Repositories
 
             var type = typeof(T).Name;
 
-            // Перевіряємо, чи вже створено репозиторій для цього типу, щоб не створювати дублікати
             if (!_repositories.ContainsKey(type))
             {
-                var repositoryType = typeof(Repository<>);
+                object repositoryInstance;
 
-                // Створюємо екземпляр Repository<T>, передаючи контекст бази даних
-                var repositoryInstance = Activator.CreateInstance(
-                    repositoryType.MakeGenericType(typeof(T)),
-                    _dbContext
-                );
+                // === ЛОГІКА ВИБОРУ СПЕЦІАЛЬНИХ РЕПОЗИТОРІЇВ ===
+
+                if (typeof(T) == typeof(Order))
+                {
+                    // Використовуємо ваш OrderRepository
+                    repositoryInstance = new OrderRepository(_dbContext);
+                }
+                else if (typeof(T) == typeof(User))
+                {
+                    // Використовуємо ваш UserRepository
+                    repositoryInstance = new UserRepository(_dbContext);
+                }
+                else
+                {
+                    // Для всіх інших (наприклад, Product) - стандартний Generic Repository
+                    var repositoryType = typeof(Repository<>);
+                    repositoryInstance = Activator.CreateInstance(
+                        repositoryType.MakeGenericType(typeof(T)),
+                        _dbContext
+                    );
+                }
+                // ================================================
 
                 _repositories.Add(type, repositoryInstance);
             }

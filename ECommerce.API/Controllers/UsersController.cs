@@ -1,5 +1,6 @@
 ﻿using Application.Features.Users.Commands.CreateUser;
 using Application.Features.Users.Queries.GetUserById;
+using Application.Features.Users.Queries.Login; // <--- ДОДАНО
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -39,6 +40,23 @@ namespace ECommerce.API.Controllers
             }
 
             return Ok(userDto);
+        }
+
+        // ↓↓↓ НОВИЙ МЕТОД ↓↓↓
+        // POST: api/users/login
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginUserQuery query)
+        {
+            try
+            {
+                var result = await _mediator.Send(query);
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Повертаємо 401 Unauthorized, якщо пароль невірний
+                return Unauthorized(ex.Message);
+            }
         }
     }
 }
