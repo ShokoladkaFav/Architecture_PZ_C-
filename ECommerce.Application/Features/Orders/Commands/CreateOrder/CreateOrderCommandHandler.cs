@@ -1,4 +1,5 @@
-﻿using Application.Interfaces; // <--- Додано
+﻿using Application.Features.Orders.Events; // <--- Додано посилання на подію
+using Application.Interfaces;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Repositories;
 using MediatR;
@@ -12,18 +13,23 @@ namespace Application.Features.Orders.Commands.CreateOrder
     public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Guid>
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly ICurrentUserService _currentUserService; // <--- Додано поле
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IMediator _mediator; // <--- Додано поле для публікації подій
 
         // Оновлений конструктор
-        public CreateOrderCommandHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
+        public CreateOrderCommandHandler(
+            IUnitOfWork unitOfWork,
+            ICurrentUserService currentUserService,
+            IMediator mediator) // <--- Інжектимо IMediator
         {
             _unitOfWork = unitOfWork;
             _currentUserService = currentUserService;
+            _mediator = mediator;
         }
 
         public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
         {
-            // 1. Отримуємо ID користувача з токена через наш сервіс
+            // 1. Отримуємо ID користувача
             var userId = _currentUserService.UserId;
 
             if (userId == Guid.Empty)
@@ -31,7 +37,6 @@ namespace Application.Features.Orders.Commands.CreateOrder
                 throw new UnauthorizedAccessException("User ID not found in token.");
             }
 
-            // Перевірка користувача в БД
             var userRepo = _unitOfWork.Repository<User>();
             var user = await userRepo.GetByIdAsync(userId);
 
@@ -40,7 +45,7 @@ namespace Application.Features.Orders.Commands.CreateOrder
                 throw new KeyNotFoundException($"User with ID {userId} not found.");
             }
 
-            // 2. Створення замовлення (використовуємо userId з токена)
+            // 2. Створення замовлення
             var order = new Order(userId);
             var productRepo = _unitOfWork.Repository<Product>();
 
@@ -71,6 +76,11 @@ namespace Application.Features.Orders.Commands.CreateOrder
             await orderRepo.AddAsync(order);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // ↓↓↓ 5. ПУБЛІКАЦІЯ ПОДІЇ (EVENT DRIVEN DESIGN) ↓↓↓
+            // Це запустить OrderCreatedEmailHandler у фоновому режимі
+            await _mediator.Publish(new OrderCreatedEvent(order.Id, userId), cancellationToken);
+            // =================================================
 
             return order.Id;
         }

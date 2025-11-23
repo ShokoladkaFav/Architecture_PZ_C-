@@ -9,6 +9,10 @@ using ECommerce.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+// ??? 1. ВАЖЛИВО: Додайте цей using, щоб бачити MappingProfile ???
+using Application.Mappings;
+// Якщо підсвічує червоним, спробуйте: using ECommerce.Application.Mappings;
+// ================================================================
 
 namespace ECommerce.API
 {
@@ -20,6 +24,10 @@ namespace ECommerce.API
 
             // Add services to the container.
             builder.Services.AddControllers();
+
+            // Сервіс кешування в пам'яті (Caching)
+            builder.Services.AddMemoryCache();
+
             builder.Services.AddEndpointsApiExplorer();
 
             // Налаштування Swagger для роботи з JWT
@@ -63,10 +71,14 @@ namespace ECommerce.API
             // Services
             builder.Services.AddScoped<ITokenService, TokenService>();
 
-            // ??? ДОДАНО: Сервіси для визначення поточного користувача ???
+            // Сервіси для визначення поточного користувача
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-            // ============================================================
+
+            // ??? 2. ВИПРАВЛЕНО: Явна реєстрація AutoMapper ???
+            // Ми вказуємо збірку (Assembly), де знаходиться MappingProfile
+            builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
+            // =================================================
 
             // Application Layer
             builder.Services.AddApplication();
